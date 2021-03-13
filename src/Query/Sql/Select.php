@@ -1,148 +1,67 @@
-<?php 
+<?php
+
+declare(strict_types=1);
 
 namespace Crys\Hydrahon\Query\Sql;
 
-/**
- * SQL query object
- **
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
-
+use Closure;
+use Crys\Hydrahon\Exception as BaseException;
 use Crys\Hydrahon\Query\Expression;
-
 use Crys\Hydrahon\BaseQuery;
 
 class Select extends SelectBase implements FetchableInterface
 {
-    /**
-     * fields to be selected
-     *
-     * @var array
-     */
-    protected $fields = array();
+    protected array $fields = [];
+    protected bool $distinct = false;
+    protected array $orders = [];
+    protected array $groups = [];
+    protected array $joins = [];
+    protected string|false $groupResults = false;
+    protected string|false $forwardKey = false;
 
-    /**
-     * make a distinct selection
-     *
-     * @var bool
-     */
-    protected $distinct = false;
-
-    /**
-     * order by container
-     *
-     * @var array
-     */
-    protected $orders = array();
-
-    /**
-     * group by container
-     *
-     * @var array
-     */
-    protected $groups = array();
-
-    /**
-     * join container
-     *
-     * @var array
-     */
-    protected $joins = array();
-
-    /**
-     * group the results by a given key
-     *
-     * @var false|string
-     */
-    protected $groupResults = false;
-
-    /**
-     * Forward a value as key
-     *
-     * @var false|string
-     */
-    protected $forwardKey = false;
-
-    /**
-     * Inherit property values from parent query
-     * 
-     * @param BaseQuery             $parent
-     * @return void
-     */
-    protected function inheritFromParent(BaseQuery $parent)
+    protected function inheritFromParent(BaseQuery $parent): void
     {
         parent::inheritFromParent($parent);
 
+        /** @noinspection SelfClassReferencingInspection */
         if ($parent instanceof Select) {
             $parent->copyTo($this);
-        } 
-    }
-
-    /**
-     * Copy current queries select attributes to the given one 
-     *
-     * @param Select            $query
-     */
-    public function copyTo(Select $query)
-    {
-        $query->fields = $this->fields;
-        $query->distinct = $this->distinct;
-        $query->orders = $this->orders;
-        $query->groups = $this->groups;
-        $query->joins = $this->joins;
-        $query->groupResults = $this->groupResults;
-        $query->forwardKey = $this->forwardKey;
-    }
-
-    /**
-     * Distinct select setter
-     *
-     * @param bool        $distinct
-     * @return static The current query builder.
-     */
-    public function distinct($distinct = true)
-    {
-        $this->distinct = $distinct; return $this;
-    }
-
-    /**
-     * Set the selected fields fields
-     * 
-     *     ->fields('title')
-     * 
-     *     ->fields(['id', 'name'])
-     *     
-     *     ->fields('id, name, created_at as created')
-     *
-     * @param string|array|object             $fields The fields that should be selected.
-     * @return static The current query builder.
-     */
-    public function fields($fields)
-    {
-        // we always have to reset the fields
-        $this->fields = array();
-
-        // when a string is given
-        if (is_string($fields)) 
-        {
-            $fields = $this->stringArgumentToArray($fields);
         }
-        // it also could be an object
-        elseif (is_object($fields))
-        {
+    }
+
+    public function copyTo(Select $query): void
+    {
+        $query->fields       = $this->fields;
+        $query->distinct     = $this->distinct;
+        $query->orders       = $this->orders;
+        $query->groups       = $this->groups;
+        $query->joins        = $this->joins;
+        $query->groupResults = $this->groupResults;
+        $query->forwardKey   = $this->forwardKey;
+    }
+
+    public function distinct(bool $distinct = true): static
+    {
+        $this->distinct = $distinct;
+        return $this;
+    }
+
+    public function fields(object|array|string $fields): static
+    {
+        $this->fields = [];
+
+        if (is_string($fields)) {
+            $fields = $this->stringArgumentToArray($fields);
+        } elseif (is_object($fields)) {
             return $this->addField($fields);
         }
 
-        // do nothing if we get nothing
-        if (empty($fields) || $fields === array('*') || $fields === array('')) { return $this; }
+        if (empty($fields) || $fields === ['*'] || $fields === ['']) {
+            return $this;
+        }
 
-        // add the fields
-        foreach($fields as $key => $field)
-        {
-            // when we have a string as key we have an alias definition
-            if (is_string($key))
-            {
+        foreach ($fields as $key => $field) {
+            if (is_string($key)) {
                 $this->addField($key, $field);
             } else {
                 $this->addField($field);
@@ -152,138 +71,56 @@ class Select extends SelectBase implements FetchableInterface
         return $this;
     }
 
-    /**
-     * Add a single select field
-     * 
-     *     ->addField('title')
-     *
-     * @param string|object         $field
-     * @param string                $alias
-     * @return static The current query builder.
-     */
-    public function addField($field, $alias = null)
+    public function addField(object|string $field, ?string $alias = null): static
     {
-        $this->fields[] = array($field, $alias); return $this;
+        $this->fields[] = [$field, $alias];
+
+        return $this;
     }
 
-    /**
-     * Shortcut to add a count function
-     * 
-     *     ->addFieldCount('id')
-     *
-     * @param string                $field
-     * @param string                $alias
-     * @return static The current query builder.
-     */
-    public function addFieldCount($field, $alias = null)
+    public function addFieldCount(string $field, ?string $alias = null): static
     {
-        $this->addField(new Func('count', $field), $alias); return $this;
+        return $this->addField(new Func('count', $field), $alias);
     }
 
-    /**
-     * Shortcut to add a max function
-     * 
-     *     ->addFieldMax('views')
-     *
-     * @param string                $field
-     * @param string                $alias
-     * @return static The current query builder.
-     */
-    public function addFieldMax($field, $alias = null)
+    public function addFieldMax(string $field, ?string $alias = null): static
     {
-        $this->addField(new Func('max', $field), $alias); return $this;
+        return $this->addField(new Func('max', $field), $alias);
     }
 
-    /**
-     * Shortcut to add a min function
-     * 
-     *     ->addFieldMin('views')
-     *
-     * @param string                $field
-     * @param string                $alias
-     * @return static The current query builder.
-     */
-    public function addFieldMin($field, $alias = null)
+    public function addFieldMin(string $field, ?string $alias = null): static
     {
-        $this->addField(new Func('min', $field), $alias); return $this;
+        return $this->addField(new Func('min', $field), $alias);
     }
 
-    /**
-     * Shortcut to add a sum function
-     * 
-     *     ->addFieldSum('views')
-     *
-     * @param string                $field
-     * @param string                $alias
-     * @return static The current query builder.
-     */
-    public function addFieldSum($field, $alias = null)
+    public function addFieldSum(string $field, ?string $alias = null): static
     {
-        $this->addField(new Func('sum', $field), $alias); return $this;
+        return $this->addField(new Func('sum', $field), $alias);
     }
 
-    /**
-     * Shortcut to add a avg function
-     * 
-     *     ->addFieldAvg('views')
-     *
-     * @param string                $field
-     * @param string                $alias
-     * @return static The current query builder.
-     */
-    public function addFieldAvg($field, $alias = null)
+    public function addFieldAvg(string $field, ?string $alias = null): static
     {
-        $this->addField(new Func('avg', $field), $alias); return $this;
+        return $this->addField(new Func('avg', $field), $alias);
     }
 
-    /**
-     * Shortcut to add a price function
-     * 
-     *     ->addFieldRound('price')
-     *
-     * @param string                $field
-     * @param string                $alias
-     * @return static The current query builder.
-     */
-    public function addFieldRound($field, $decimals = 0, $alias = null)
+    public function addFieldRound(string $field, int $decimals = 0, ?string $alias = null): static
     {
-        $this->addField(new Func('round', $field, new Expression((int)$decimals)), $alias); return $this;
+        return $this->addField(new Func('round', $field, new Expression($decimals)), $alias);
     }
 
-    /**
-     * Add an order by statement to the current query
-     * 
-     *     ->orderBy('created_at')
-     *     ->orderBy('modified_at', 'desc')
-     *     
-     *     // multiple order statements
-     *     ->orderBy(['firstname', 'lastname'], 'desc')
-     * 
-     *     // muliple order statements with diffrent directions
-     *     ->orderBy(['firstname' => 'asc', 'lastname' => 'desc'])
-     *
-     * @param array|string|Expression              $columns The column or colums to order by.
-     * @param string                               $direction The sort direction (asc, desc...).
-     * @return static The current query builder.
-     */
-    public function orderBy($columns, $direction = 'asc')
+    public function orderBy(array|string|Expression $columns, string $direction = 'asc'): static
     {
-        if (is_string($columns))
-        {
+        if (is_string($columns)) {
             $columns = $this->stringArgumentToArray($columns);
+        } elseif ($columns instanceof Expression) {
+            $this->orders[] = [$columns, $direction];
+            return $this;
         }
-        elseif ($columns instanceof Expression)
-        {
-            $this->orders[] = array($columns, $direction); return $this;
-        }
-        
-        foreach ($columns as $key => $column) 
-        {
-            if (is_numeric($key)) 
-            {
-                if ($column instanceof Expression)
-                {
-                    $this->orders[] = array($column, $direction);
+
+        foreach ($columns as $key => $column) {
+            if (is_numeric($key)) {
+                if ($column instanceof Expression) {
+                    $this->orders[] = [$column, $direction];
                 } else {
                     $this->orders[$column] = $direction;
                 }
@@ -295,24 +132,13 @@ class Select extends SelectBase implements FetchableInterface
         return $this;
     }
 
-    /**
-     * Add a group by statement to the current query
-     * 
-     *     ->groupBy('category')
-     *     ->gorupBy(['category', 'price'])
-     *
-     * @param array|string              $groupKeys The keys on which the data should be grouped on.
-     * @return static The current query builder.
-     */
-    public function groupBy($groupKeys)
+    public function groupBy(array|string $groupKeys): static
     {
-        if (is_string($groupKeys))
-        {
+        if (is_string($groupKeys)) {
             $groupKeys = $this->stringArgumentToArray($groupKeys);
         }
 
-        foreach ($groupKeys as $groupKey) 
-        {
+        foreach ($groupKeys as $groupKey) {
             $this->groups[] = $groupKey;
         }
 
@@ -320,115 +146,91 @@ class Select extends SelectBase implements FetchableInterface
     }
 
     /**
-     * Add a join statement to the current query
-     * 
-     *     ->join('avatars', 'users.id', '=', 'avatars.user_id')
-     *
-     * @param array|string              $table The table to join. (can contain an alias definition.)
-     * @param string|\Closure            $localKey 
-     * @param string                    $operator The operator (=, !=, <, > etc.)
-     * @param string                    $referenceKey
-     * @param string                    $type The join type (inner, left, right, outer)
-     * 
-     * @return static The current query builder.
+     * @throws Exception
      */
-    public function join($table, $localKey, $operator = null, $referenceKey = null, $type = 'left')
-    {
-        // validate the join type
-        if (!in_array($type, array('inner', 'left', 'right', 'outer')))
-        {
-            throw new Exception('Invalid join type "'.$type.'" given. Available type: inner, left, right, outer');
+    public function join(
+        array|string $table,
+        Closure|string $localKey,
+        ?string $operator = null,
+        ?string $referenceKey = null,
+        string $type = 'left'
+    ): static {
+        if (!in_array($type, ['inner', 'left', 'right', 'outer'])) {
+            throw new Exception(
+                sprintf(
+                    'Invalid join type "%s" given. Available type: inner, left, right, outer',
+                    $type
+                )
+            );
         }
 
-        // to make nested joins possible you can pass an closure
-        // wich will create a new query where you can add your nested wheres
-        if (is_object($localKey) && ($localKey instanceof \Closure)) 
-        {
-            // create new query object
-            $subquery = new SelectJoin;
+        if (is_object($localKey) && ($localKey instanceof Closure)) {
+            $subquery = new SelectJoin();
 
-            // run the closure callback on the sub query
-            call_user_func_array($localKey, array(&$subquery));
-    
-            // add the join
-            $this->joins[] = array($type, $table, $subquery); return $this;
+            call_user_func_array($localKey, [&$subquery]);
+
+            $this->joins[] = [$type, $table, $subquery];
+
+            return $this;
         }
 
-        $this->joins[] = array($type, $table, $localKey, $operator, $referenceKey); return $this;
+        $this->joins[] = [$type, $table, $localKey, $operator, $referenceKey];
+
+        return $this;
     }
 
     /**
-     * Left join same as join with special type
-     *
-     * @param array|string              $table The table to join. (can contain an alias definition.)
-     * @param string                    $localKey
-     * @param string                    $operator The operator (=, !=, <, > etc.)
-     * @param string                    $referenceKey
-     * 
-     * @return static The current query builder.
+     * @throws Exception
      */
-    public function leftJoin($table, $localKey, $operator = null, $referenceKey = null)
-    {
-        return $this->join($table, $localKey, $operator, $referenceKey, 'left');
+    public function leftJoin(
+        array|string $table,
+        string $localKey,
+        ?string $operator = null,
+        ?string $referenceKey = null
+    ): static {
+        return $this->join($table, $localKey, $operator, $referenceKey);
     }
 
     /**
-     * Alias of the `join` method with join type right.
-     *
-     * @param array|string              $table The table to join. (can contain an alias definition.)
-     * @param string                    $localKey
-     * @param string                    $operator The operator (=, !=, <, > etc.)
-     * @param string                    $referenceKey
-     * 
-     * @return static The current query builder.
+     * @throws Exception
      */
-    public function rightJoin($table, $localKey, $operator = null, $referenceKey = null)
-    {
+    public function rightJoin(
+        array|string $table,
+        string $localKey,
+        ?string $operator = null,
+        ?string $referenceKey = null
+    ): static {
         return $this->join($table, $localKey, $operator, $referenceKey, 'right');
     }
 
     /**
-     * Alias of the `join` method with join type inner.
-     *
-     * @param array|string              $table The table to join. (can contain an alias definition.)
-     * @param string                    $localKey
-     * @param string                    $operator The operator (=, !=, <, > etc.)
-     * @param string                    $referenceKey
-     * 
-     * @return static The current query builder.
+     * @throws Exception
      */
-    public function innerJoin($table, $localKey, $operator = null, $referenceKey = null)
-    {
+    public function innerJoin(
+        array|string $table,
+        string $localKey,
+        ?string $operator = null,
+        ?string $referenceKey = null
+    ): static {
         return $this->join($table, $localKey, $operator, $referenceKey, 'inner');
     }
 
     /**
-     * Alias of the `join` method with join type outer.
-     *
-     * @param array|string              $table The table to join. (can contain an alias definition.)
-     * @param string                    $localKey
-     * @param string                    $operator The operator (=, !=, <, > etc.)
-     * @param string                    $referenceKey
-     * 
-     * @return static The current query builder.
+     * @throws Exception
      */
-    public function outerJoin($table, $localKey, $operator = null, $referenceKey = null)
-    {
+    public function outerJoin(
+        array|string $table,
+        string $localKey,
+        ?string $operator = null,
+        ?string $referenceKey = null
+    ): static {
         return $this->join($table, $localKey, $operator, $referenceKey, 'outer');
     }
 
-    /**
-     * Forward a result value as array key
-     *
-     * @param string|bool        $key
-     * @return static The current query builder.
-     */
-    public function forwardKey($key = true)
+    public function forwardKey(string|false $key = 'id'): static
     {
         if ($key === false) {
             $this->forwardKey = false;
-        } elseif ($key === true) {
-            $this->forwardKey = 'id';
         } else {
             $this->forwardKey = $key;
         }
@@ -436,26 +238,7 @@ class Select extends SelectBase implements FetchableInterface
         return $this;
     }
 
-    /**
-     * Group results by a column
-     *
-     * example:
-     *     array( 'name' => 'John', 'age' => 18, ),
-     *     array( 'name' => 'Jeff', 'age' => 32, ),
-     *     array( 'name' => 'Jenny', 'age' => 18, ),
-     * To:
-     *     '18' => array(
-     *          array( 'name' => 'John', 'age' => 18 ),
-     *          array( 'name' => 'Jenny', 'age' => 18 ),
-     *     ),
-     *     '32' => array(
-     *          array( 'name' => 'Jeff', 'age' => 32 ),
-     *     ),
-     *
-     * @param string|bool        $key
-     * @return static The current query builder.
-     */
-    public function groupResults($key)
+    public function groupResults(string|false $key): static
     {
         if ($key === false) {
             $this->groupResults = false;
@@ -467,64 +250,44 @@ class Select extends SelectBase implements FetchableInterface
     }
 
     /**
-     * Executes the `executeResultFetcher` callback and handles the results.
-     * 
-     * @return mixed The fetched result.
+     * @throws Exception
+     * @throws BaseException
      */
-    public function get()
+    public function get(): mixed
     {
-         // run the callbacks to retirve the results
         $results = $this->executeResultFetcher();
 
-        // we always exprect an array here!
-        if (!is_array($results) || empty($results))
-        {
-            $results = array();
+        if (!is_array($results) || empty($results)) {
+            $results = [];
         }
 
-        // In case we should forward a key means using a value
-        // from every result as array key.
-        if ((!empty($results)) && $this->forwardKey !== false && is_string($this->forwardKey)) 
-        {
+        if (!empty($results) && $this->forwardKey !== false && is_string($this->forwardKey)) {
             $rawResults = $results;
-            $results = array();
+            $results    = [];
 
-            // check if the collection is beeing fetched 
-            // as an associated array 
-            if (!is_array(reset($rawResults)))
-            {
+            if (!is_array(reset($rawResults))) {
                 throw new Exception('Cannot forward key, the result is no associated array.');
             }
 
-            foreach ($rawResults as $result) 
-            {
+            foreach ($rawResults as $result) {
                 $results[$result[$this->forwardKey]] = $result;
             }
         }
 
-        // Group the resuls by a items value
-        if ((!empty($results)) && $this->groupResults !== false && is_string($this->groupResults)) 
-        {
+        if (!empty($results) && $this->groupResults !== false && is_string($this->groupResults)) {
             $rawResults = $results;
-            $results = array();
+            $results    = [];
 
-            // check if the collection is beeing fetched 
-            // as an associated array 
-            if (!is_array(reset($rawResults)))
-            {
+            if (!is_array(reset($rawResults))) {
                 throw new Exception('Cannot forward key, the result is no associated array.');
             }
 
-            foreach ($rawResults as $key => $result) 
-            {
+            foreach ($rawResults as $key => $result) {
                 $results[$result[$this->groupResults]][$key] = $result;
             }
         }
 
-        // when the limit is specified to exactly one result we
-        // return directly that one result instead of the entire array
-        if ($this->limit === 1) 
-        {
+        if ($this->limit === 1) {
             $results = reset($results);
         }
 
@@ -532,165 +295,116 @@ class Select extends SelectBase implements FetchableInterface
     }
 
     /**
-     * Executes the 'executeResultFetcher' callback and handles the results
-     *
-     * @deprecated Please use the `get` method instead.
-     *
-     * @return mixed
+     * @throws Exception
+     * @throws BaseException
      */
-    public function run()
-    {
-        // run is basically ported from CCF, laravels `get` just feels 
-        // much better so lets move on...
-        trigger_error('The `run` method is deprecated, `get` method instead.', E_USER_DEPRECATED);
-
-        // run the get method
-        return $this->get();
-    }
-
-    /**
-     * Sets the limit to 1, executes and returns the first result using get.
-     *
-     * @return mixed The single result.
-     */
-    public function one()
+    public function one(): mixed
     {
         return $this->limit(0, 1)->get();
     }
 
     /**
-     * Find something, means select one item by key
-     *
-     * @param int               $id
-     * @param string            $key
-     * @return mixed
+     * @throws Exception
+     * @throws BaseException
      */
-    public function find($id, $key = 'id')
+    public function find(mixed $id, string|array|Closure $key = 'id'): mixed
     {
         return $this->where($key, $id)->one();
     }
 
     /**
-     * Get the first result orderd by the given key.
-     *
-     * @param string            $key By what should the first item be selected? Default is: 'id'
-     * @return mixed The first result.
+     * @throws Exception
+     * @throws BaseException
      */
-    public function first($key = 'id')
+    public function first(string|array|Closure $key = 'id'): mixed
     {
-        return $this->orderBy($key, 'asc')->one();
+        return $this->orderBy($key)->one();
     }
 
     /**
-     * Get the last result by key
-     *
-     * @param string            $key The key on which should be determined what the last element is.
-     * @return mixed the last result.
+     * @throws Exception
+     * @throws BaseException
      */
-    public function last($key = 'id')
+    public function last(string|array|Closure $key = 'id')
     {
         return $this->orderBy($key, 'desc')->one();
     }
 
     /**
-     * Just get a single value from the result
-     *
-     * @param string|Func|Expression            $column The name of the column.
-     * @return mixed The columns value
+     * @throws Exception
+     * @throws BaseException
      */
-    public function column($column)
+    public function column(Func|string|Expression $column): mixed
     {
-        $result = $this->fields($column)->one(); 
+        $result = $this->fields($column)->one();
 
         // only return something if something is found
-        if (is_array($result))
-        {
+        if (is_array($result)) {
             return reset($result);
         }
+
+        return null;
     }
 
     /**
-     * Just return the number of results 
-     *
-     * @param string                    $field
-     * @return int
+     * @throws Exception
+     * @throws BaseException
      */
-    public function count($field = null)
+    public function count(string|array|Closure $field = '*'): int
     {
-        // when no field is given we use *
-        if (is_null($field))
-        {
-            $field = new Expression('*');
-        }
-
-        // return the column
-        return (int) $this->column(new Func('count', $field));
+        return (int)$this->column(new Func('count', $field));
     }
 
     /**
-     * Helper for the SQL sum aggregation.
-     *
-     * @param string            $field
-     * @return int
+     * @throws Exception
+     * @throws BaseException
      */
-    public function sum($field)
+    public function sum(string|array|Closure $field = '*'): float
     {
-        return $this->column(new Func('sum', $field));
+        return (float)$this->column(new Func('sum', $field));
     }
 
     /**
-     * Helper for the SQL max aggregation.
-     *
-     * @param string            $field
-     * @return int
+     * @throws Exception
+     * @throws BaseException
      */
-    public function max($field)
+    public function max(string|array|Closure $field = '*'): float
     {
-        return $this->column(new Func('max', $field));
+        return (float)$this->column(new Func('max', $field));
     }
 
     /**
-     * Helper for the SQL min aggregation.
-     *
-     * @param string            $field
-     * @return int
+     * @throws Exception
+     * @throws BaseException
      */
-    public function min($field)
+    public function min(string|array|Closure $field = '*'): float
     {
-        return $this->column(new Func('min', $field));
+        return (float)$this->column(new Func('min', $field));
     }
 
     /**
-     * Helper for the SQL average aggregation.
-     *
-     * @param string            $field
-     * @return int
+     * @throws Exception
+     * @throws BaseException
      */
-    public function avg($field)
+    public function avg(string|array|Closure $field = '*'): float
     {
-        return $this->column(new Func('avg', $field));
+        return (float)$this->column(new Func('avg', $field));
     }
 
-    /** 
-     * Do any results of this query exist?
-     * 
-     * @return bool
+    /**
+     * @throws BaseException
      */
-    public function exists()
+    public function exists(): bool
     {
         $existsQuery = new Exists($this);
-
-        // set the current select for the exists query
         $existsQuery->setSelect($this);
 
-        // run the callbacks to retirve the results
         $result = $existsQuery->executeResultFetcher();
 
-        if (isset($result[0]['exists']))
-        {
-            return (bool) $result[0]['exists'];
+        if (isset($result[0]['exists'])) {
+            return (bool)$result[0]['exists'];
         }
-        
+
         return false;
     }
 }

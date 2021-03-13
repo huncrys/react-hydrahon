@@ -1,20 +1,10 @@
-<?php namespace Crys\Hydrahon;
+<?php
 
-/**
- * Query translator interface
- **
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
+
+namespace Crys\Hydrahon;
 
 interface TranslatorInterface
 {
-	/**
-	 * Translate the given query object and return the results as 
-	 * argument array
-	 * 
-	 * @param BaseQuery 				$query
-	 * @return array
-	 */
-    public function translate(BaseQuery $query);
+    public function translate(BaseQuery $query): array;
 }

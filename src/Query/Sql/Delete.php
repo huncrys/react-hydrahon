@@ -1,13 +1,9 @@
-<?php namespace Crys\Hydrahon\Query\Sql;
+<?php
 
-/**
- * SQL query object
- **
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
+
+namespace Crys\Hydrahon\Query\Sql;
 
 class Delete extends SelectBase
 {
-    // currently delete does nothing sepecial so go on do other stuff..
 }

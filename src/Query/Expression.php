@@ -1,49 +1,23 @@
-<?php namespace Crys\Hydrahon\Query;
+<?php
 
-/**
- * DB Expression
- * This class is just an value holder so we are able to identify 
- * if a given string should not be escaped.
- ** 
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
 
-class Expression 
+namespace Crys\Hydrahon\Query;
+
+class Expression
 {
-	/**
-	 * The value holder 
-	 *
-	 * @var string|int
-	 */
-	protected $value = null;
-	
-	/**
-	 * The constructor that assigns our value
-	 *
-	 * @param string|int 		$value
-	 * @return void
-	 */
-	public function __construct($value)
-	{
-		$this->value = $value;
-	}
+    public function __construct(
+        protected int|float|string $value
+    ) {
+    }
 
-	/**
-	 * Return the expressions value
-	 * 
-	 * @return string|int 
-	 */
-	public function value()
-	{
-		return $this->value;
-	}
+    public function value(): int|float|string
+    {
+        return $this->value;
+    }
 
-	/**
-	 * To string magic returns the expression value
-	 */
-	public function __toString()
-	{
-		return $this->value();
-	}
+    public function __toString(): string
+    {
+        return (string)$this->value;
+    }
 }

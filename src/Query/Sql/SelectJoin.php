@@ -1,71 +1,27 @@
-<?php 
+<?php
+
+declare(strict_types=1);
 
 namespace Crys\Hydrahon\Query\Sql;
 
-/**
- * SQL query object
- **
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
-
-use Crys\Hydrahon\Query\Expression;
-
 class SelectJoin extends SelectBase
 {
-    /**
-     * join on items
-     *
-     * @var array
-     */
-    protected $ons = array();
+    protected array $ons = [];
 
-    /**
-     * The query where statements
-     *
-     * @var array
-     */
-    protected $wheres = array();
-
-    /**
-     * Add an on condition to the join object
-     * 
-     * @param string                $localKey
-     * @param string                $operator
-     * @param string                $referenceKey
-     * 
-     * @return static
-     */
-    public function on($localKey, $operator, $referenceKey, $type = 'and')
+    public function on(string $localKey, string $operator, string $referenceKey, string $type = 'and'): static
     {
-        $this->ons[] = array($type, $localKey, $operator, $referenceKey); return $this;
+        $this->ons[] = [$type, $localKey, $operator, $referenceKey];
+
+        return $this;
     }
 
-    /**
-     * Add an or on condition to the join object
-     * 
-     * @param string                $localKey
-     * @param string                $operator
-     * @param string                $referenceKey
-     * 
-     * @return static
-     */
-    public function orOn($localKey, $operator, $referenceKey)
+    public function orOn(string $localKey, string $operator, string $referenceKey): static
     {
-        $this->on($localKey, $operator, $referenceKey, 'or'); return $this;
+        return $this->on($localKey, $operator, $referenceKey, 'or');
     }
 
-     /**
-     * Add an and on condition to the join object
-     * 
-     * @param string                $localKey
-     * @param string                $operator
-     * @param string                $referenceKey
-     * 
-     * @return static
-     */
-    public function andOn($localKey, $operator, $referenceKey)
+    public function andOn(string $localKey, string $operator, string $referenceKey): static
     {
-        $this->on($localKey, $operator, $referenceKey, 'and'); return $this;
+        return $this->on($localKey, $operator, $referenceKey);
     }
 }

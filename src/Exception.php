@@ -1,10 +1,11 @@
-<?php namespace Crys\Hydrahon;
+<?php
 
-/**
- * Hydrahon exceptions
- ** 
- * @package 		Hydrahon
- * @copyright 		2015 Mario Döring
- */
+declare(strict_types=1);
 
-class Exception extends \Exception {}
+namespace Crys\Hydrahon;
+
+use Exception as BaseException;
+
+class Exception extends BaseException
+{
+}

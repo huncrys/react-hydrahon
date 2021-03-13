@@ -1,128 +1,76 @@
-<?php namespace Crys\Hydrahon\Query\Sql;
+<?php
 
-/**
- * Base sql class
- **
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
 
+namespace Crys\Hydrahon\Query\Sql;
+
+use Closure;
 use Crys\Hydrahon\BaseQuery;
 
 class Base extends BaseQuery
-{ 
-    /**
-     * The database the query should be executed on
-     * 
-     * @var string|null
-     */
-    protected $database = null;
+{
+    protected ?string $database = null;
+    protected ?string $table = null;
 
-    /**
-     * The table the query should be executed on
-     * 
-     * @var string|null
-     */
-    protected $table = null;
-
-    /**
-     * Inherit property values from parent query
-     * 
-     * @param BaseQuery             $parent
-     * @return void
-     */
-    protected function inheritFromParent(BaseQuery $parent)
+    protected function inheritFromParent(BaseQuery $parent): void
     {
         parent::inheritFromParent($parent);
 
         if (isset($parent->database)) {
             $this->database = $parent->database;
         }
+
         if (isset($parent->table)) {
             $this->table = $parent->table;
         }
     }
-    
+
     /**
-     * Create a new select query builder
-     *      
-     *     // selecting a table
-     *     $h->table('users')
-     *  
-     *     // selecting table and database
-     *     $h->table('db_mydatabase.posts')
-     *
-     * @param string|\Closure                   $table
-     * @return static
+     * @throws Exception
      */
-    public function table($table, $alias = null)
+    public function table(array|string|Closure $table, int|string|null $alias = null): static
     {
         $database = null;
 
-        // Check if the table is an object, this means
-        // we have an subselect inside the table
-        if (is_object($table) && ($table instanceof \Closure)) 
-        {
-            // we have to check if an alias isset 
-            // otherwise throw an exception to prevent the 
-            // "Every derived table must have its own alias" error
-            if (is_null($alias))
-            {
+        if (is_object($table) && ($table instanceof Closure)) {
+            if (is_null($alias)) {
                 throw new Exception('You must define an alias when working with subselects.');
             }
 
-            $table = array($alias => $table);
-        } 
+            $table = [$alias => $table];
+        }
 
-        // Check if the $table is an array and the value is an closure
-        // that we can pass a new query object as subquery 
-        if (is_array($table) && is_object(reset($table)) && (reset($table) instanceof \Closure)) 
-        {
+        if (is_array($table) && ($closure = reset($table)) instanceof Closure) {
             $alias = key($table);
-            $table = reset($table);
 
-            // create new query object
-            $subquery = new Select;
+            $subquery = new Select();
 
-            // run the closure callback on the sub query
-            call_user_func_array($table, array(&$subquery));
+            call_user_func_array($closure, [&$subquery]);
 
-            // set the table 
-            // IMPORTANT: Only if we have a closure as table
-            // we set the alias as key. This might cause some confusion
-            // but only this way we can keep the normal ['table' => 'alias'] syntax
-            $table = array($alias => $subquery);
-        } 
-
-        // otherwise normally try to split the table and database name
-        elseif (is_string($table) && strpos($table, '.') !== false)
-        {
+            $table = [$alias => $subquery];
+        } elseif (is_string($table) && str_contains($table, '.')) {
             $selection = explode('.', $table);
 
-            if (count($selection) !== 2)
-            {
-                throw new Exception( 'Invalid argument given. You can only define one separator.' );
+            if (count($selection) !== 2) {
+                throw new Exception('Invalid argument given. You can only define one separator.');
             }
 
-            list($database, $table) = $selection;
+            [$database, $table] = $selection;
         }
 
-        // the table might include an alias we need to parse that one out 
-        if (is_string($table) && strpos($table, ' as ') !== false)
-        {
-            $tableParts = explode(' as ', $table);
-            $table = array($tableParts[0] => $tableParts[1]);
-        }
-        elseif(is_string($table) && (!is_null($alias)))
-        {
-            $table = array($table => $alias);
+        if (is_string($table)) {
+            if (str_contains($table, ' as ')) {
+                [$table, $alias] = explode(' as ', $table);
+            }
+
+            if (!is_null($alias)) {
+                $table = [$table => $alias];
+            }
         }
 
-        // assing the result
         $this->database = $database;
-        $this->table = $table;
+        $this->table    = $table;
 
-        // return self
         return $this;
     }
 }

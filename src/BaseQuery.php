@@ -1,145 +1,75 @@
-<?php namespace Crys\Hydrahon;
+<?php
 
-/**
- * Base query object
- ** 
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
 
+namespace Crys\Hydrahon;
+
+use BadMethodCallException;
 use Crys\Hydrahon\Query\Expression;
+use JetBrains\PhpStorm\Pure;
 
 class BaseQuery
-{   
-    /**
-     * Query builder callback macros
-     * 
-     * @var array<callable>
-     */
-    protected $macros = array();
+{
+    protected array $macros = [];
+    protected array $flags = [];
 
-    /**
-     * Query flags
-     * These allow you to store data inside the query object.
-     * This data has no influence on the generated query string or parameters directly.
-     * But allow you to use the query a state mashine.
-     *  
-     * @var array<mixed>
-     */
-    protected $flags = array();
+    /** @var callable|null */
+    protected $resultFetcher;
 
-    /**
-     * The callback where we fetch the results from
-     *
-     * @var callable|null
-     */
-    protected $resultFetcher = null;
-
-    /**
-     * Construct new query object and inherit properties
-     *
-     * @param BaseQuery             $parent
-     * @return void
-     */
     final public function __construct(BaseQuery $parent = null)
     {
-        if (!is_null($parent))
-        {
+        if (!is_null($parent)) {
             $this->inheritFromParent($parent);
         }
     }
 
-    /**
-     * Inherit property values from parent query
-     * 
-     * @param BaseQuery             $parent
-     * @return void
-     */
-    protected function inheritFromParent(BaseQuery $parent)
+    protected function inheritFromParent(BaseQuery $parent): void
     {
-        $this->macros = $parent->macros;
-        $this->flags = $parent->flags;
-        $this->resultFetcher = $parent->resultFetcher;   
+        $this->macros        = $parent->macros;
+        $this->flags         = $parent->flags;
+        $this->resultFetcher = $parent->resultFetcher;
     }
 
-    /**
-     * Set the result fetcher of the query
-     *
-     * @param callable              $resultFetcher
-     * @return void
-     */
-    public function setResultFetcher($resultFetcher = null)
+    public function setResultFetcher(callable $resultFetcher): void
     {
         $this->resultFetcher = $resultFetcher;
     }
 
-    /**
-     * Set a flag on the query object
-     *
-     * @param string            $key
-     * @param mixed             $value
-     * @return void
-     */
-    final public function setFlag($key, $value)
+    final public function setFlag(string $key, mixed $value): void
     {
         $this->flags[$key] = $value;
     }
 
-    /**
-     * Gets a flag from the query object
-     *
-     * @param string            $key
-     * @param mixed             $default
-     * @return mixed
-     */
-    final public function getFlag($key, $default = null)
+    final public function getFlag(string $key, mixed $default = null): mixed
     {
-        if (!isset($this->flags[$key])) {
-            return $default;
-        }
-
-        return $this->flags[$key];
+        return $this->flags[$key] ?? $default;
     }
 
-    /**
-     * Register a macro on the current query object
-     * 
-     * @param string                $method
-     * @param callable             $callback
-     * @return void
-     */
-    final public function macro($method, $callback)
+    final public function macro(string $method, callable $callback): void
     {
         $this->macros[$method] = $callback;
     }
 
     /**
-     * Allow macro calls 
-     * 
-     * @param string                       $name
-     * @param array<mixed>                 $arguments
-     * @return mixed
-     */ 
-    public function __call($name, $arguments) 
+     * @throws BadMethodCallException
+     */
+    public function __call(string $name, array $arguments): static
     {
-        if (!isset($this->macros[$name]))
-        {
-            throw new \BadMethodCallException('There is no macro or method with the name "'.$name.'" registered.');
+        if (!isset($this->macros[$name])) {
+            throw new BadMethodCallException('There is no macro or method with the name "' . $name . '" registered.');
         }
 
-        call_user_func_array($this->macros[$name], array_merge(array(&$this), $arguments)); return $this;
+        call_user_func_array($this->macros[$name], array_merge([&$this], $arguments));
+
+        return $this;
     }
 
     /**
-     * Pass the own query to a callback
-     * 
-     * @param callable              $callback
-     * @return self
+     * @throws Exception
      */
-    public function call($callback)
+    public function call(callable $callback): static
     {
-        if (!is_callable($callback))
-        {
+        if (!is_callable($callback)) {
             throw new Exception('Invalid query callback given.');
         }
 
@@ -148,50 +78,29 @@ class BaseQuery
         return $this;
     }
 
-    /**
-     * Creates a new raw db expression instance
-     * 
-     * @param string                $expression
-     * @return Expression
-     */
-    final public function raw($expression)
+    #[Pure] final public function raw(string $expression): Expression
     {
         return new Expression($expression);
-    } 
+    }
 
-    /**
-     * Returns all avaialbe attribute data 
-     * The result fetcher callback is excluded
-     * 
-     * @return array
-     */
-    final public function attributes()
+    final public function attributes(): array
     {
-        $excluded = array('resultFetcher', 'macros');
+        $excluded   = ['resultFetcher', 'macros'];
         $attributes = get_object_vars($this);
 
-        foreach ($excluded as $key) 
-        {
-            if (isset($attributes[$key])) { unset($attributes[$key]); }
+        foreach ($excluded as $key) {
+            if (isset($attributes[$key])) {
+                unset($attributes[$key]);
+            }
         }
 
         return $attributes;
     }
 
-    /**
-     * Overwrite the query attributes
-     * 
-     * Jesuz only use this if you really really know what your are doing 
-     * otherwise you might break stuff add sql injection and all other bad stuff..
-     * 
-     * @return array
-     */
-    final public function overwriteAttributes($attributes)
+    final public function overwriteAttributes(array $attributes): array
     {
-        foreach($attributes as $key => $attribute)
-        {
-            if (isset($this->{$key}))
-            {
+        foreach ($attributes as $key => $attribute) {
+            if (isset($this->{$key})) {
                 $this->{$key} = $attribute;
             }
         }
@@ -200,26 +109,21 @@ class BaseQuery
     }
 
     /**
-     * Run the result fetcher and return the results
-     *
-     * @return mixed
+     * @throws Exception
      */
-    final protected function executeResultFetcher()
+    final protected function executeResultFetcher(): mixed
     {
-        if (is_null($this->resultFetcher))
-        {
+        if (is_null($this->resultFetcher)) {
             throw new Exception('Cannot execute result fetcher callbacks without inital assignment.');
         }
 
-        return call_user_func_array($this->resultFetcher, array(&$this));
+        return call_user_func_array($this->resultFetcher, [&$this]);
     }
 
     /**
-     * Public alias of executeResultFetcher
-     * 
-     * @return mixed
+     * @throws Exception
      */
-    public function execute()
+    public function execute(): mixed
     {
         return $this->executeResultFetcher();
     }

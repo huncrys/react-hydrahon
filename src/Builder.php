@@ -1,152 +1,87 @@
-<?php namespace Crys\Hydrahon;
+<?php
 
-/**
- * Query Builder manager
- **
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
 
+namespace Crys\Hydrahon;
+
+use Crys\Hydrahon\Query\Sql;
+use Crys\Hydrahon\Translator\Mysql;
+
+/** @noinspection UnknownInspectionInspection */
+/** @noinspection PhpUnused */
 class Builder
 {
-    /**
-     * Array of available query grammars
-     *
-     * @var array
-     */
-    protected static $grammar = array(
+    private const GRAMMARS = [
+        'mysql' => [
+            Sql::class,
+            Mysql::class,
+        ],
+    ];
 
-        // MySQL
-        'mysql' => array(
-            'ClanCats\\Hydrahon\\Query\\Sql',
-            'ClanCats\\Hydrahon\\Translator\\Mysql',
-        ),
+    protected BaseQuery $queryBuilder;
+    protected TranslatorInterface $queryTranslator;
 
-        // SQLite
-        'sqlite' => array(
-            'ClanCats\\Hydrahon\\Query\\Sql',
-            'ClanCats\\Hydrahon\\Translator\\Sqlite',
-        ),
-    );
+    /** @var callable */
+    protected $executionCallback;
 
     /**
-     * Extend the query builder by a new grammar
-     *
-     * @param string $grammarKey
-     * @param string                $queryBuilder
-     * @param string                $queryTranslator
-     * @return void
-     *@throws \Crys\Hydrahon\Exception
-     *
+     * @throws Exception
      */
-    public static function extend($grammarKey, $queryBuilder, $queryTranslator)
+    public static function extend(string $grammarKey, string $queryBuilder, string $queryTranslator): void
     {
-        if (isset(static::$grammar[$grammarKey])) 
-        {
+        if (isset(static::GRAMMARS[$grammarKey])) {
             throw new Exception('Cannot overwrite Hydrahon grammar.');
         }
 
-        static::$grammar[$grammarKey] = array($queryBuilder, $queryTranslator);
+        static::GRAMMARS[$grammarKey] = [$queryBuilder, $queryTranslator];
     }
 
     /**
-     * The current query builder instance
-     *
-     * @var BaseQuery
+     * @throws Exception
      */
-    protected $queryBuilder = null;
-
-    /**
-     * Currently loaded query translator
-     *
-     * @var \Crys\Hydrahon\TranslatorInterface
-     */
-    protected $queryTranslator = null;
-
-    /**
-     * User given execution callback
-     *
-     * @var callable
-     */
-    protected $executionCallback = null;
-
-    /**
-     * Create a new Hydrahon builder instance using the giving grammar
-     *
-     * @param string $grammarKey
-     * @param callable              $executionCallback
-     * @return void
-     *@throws \Crys\Hydrahon\Exception
-     *
-     */
-    public function __construct($grammarKey, $executionCallback)
+    public function __construct(string $grammarKey, callable $executionCallback)
     {
-        if (!isset(static::$grammar[$grammarKey])) 
-        {
+        if (!isset(static::GRAMMARS[$grammarKey])) {
             throw new Exception('There is no Hydrahon grammar "' . $grammarKey . '" registered.');
         }
 
-        if (!is_callable($executionCallback)) 
-        {
+        if (!is_callable($executionCallback)) {
             throw new Exception('Invalid query exec callback given.');
         }
 
         $this->executionCallback = $executionCallback;
 
-        // prepare the current grammar
-        list($queryBuilderClass, $translatorClass) = static::$grammar[$grammarKey];
+        [$queryBuilderClass, $translatorClass] = static::GRAMMARS[$grammarKey];
 
-        // create the query builder specific instances
-        $this->queryTranslator = new $translatorClass;
-        $this->queryBuilder = new $queryBuilderClass;
+        $this->queryTranslator = new $translatorClass();
+        $this->queryBuilder    = new $queryBuilderClass();
 
-        // assign the result fetcher
         $this->queryBuilder->setResultFetcher(array($this, 'executeQuery'));
 
-        // check if the translator is valid
-        if (!$this->queryTranslator instanceof TranslatorInterface)
-        {
+        if (!$this->queryTranslator instanceof TranslatorInterface) {
             throw new Exception('A query translator must implement the "TranslatorInterface" interface.');
         }
 
-        // check if the query builder is an instance of Base Query
-        if (!$this->queryBuilder instanceof BaseQuery)
-        {
+        if (!$this->queryBuilder instanceof BaseQuery) {
             throw new Exception('A query builder must be an instance of the "BaseQuery".');
         }
     }
 
-    /**
-     * Forwards calls to the current query builder
-     * 
-     * @param string                        $method
-     * @param array                         $arguments
-     * @return BaseQuery
-     */
-    public function __call($method, $arguments)
+    public function __call(string $method, array $arguments): BaseQuery
     {
-        return call_user_func_array(array($this->queryBuilder, $method), $arguments);
+        return call_user_func_array([$this->queryBuilder, $method], $arguments);
     }
 
-    /**
-     * Translate the given query
-     * 
-     * @param BaseQuery                 $query
-     * @return array
-     */
-    public function translateQuery(BaseQuery $query)
+    public function translateQuery(BaseQuery $query): array
     {
         return $this->queryTranslator->translate($query);
     }
 
-    /**
-     * Translate a query and run the current execution callback
-     *
-     * @param BaseQuery               $query
-     * @return mixed
-     */
-    public function executeQuery(BaseQuery $query)
+    public function executeQuery(BaseQuery $query): mixed
     {
-        return call_user_func_array($this->executionCallback, array_merge(array($query), $this->translateQuery($query)));
+        return call_user_func_array(
+            $this->executionCallback,
+            array_merge([$query], $this->translateQuery($query))
+        );
     }
 }

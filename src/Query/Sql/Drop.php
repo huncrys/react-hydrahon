@@ -1,15 +1,9 @@
-<?php namespace Crys\Hydrahon\Query\Sql;
+<?php
 
-/**
- * SQL query object
- **
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
 
-use Crys\Hydrahon\BaseQuery;
+namespace Crys\Hydrahon\Query\Sql;
 
 class Drop extends Base
 {
-    // also here we need the class only to identify the query
 }

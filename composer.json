@@ -26,6 +26,6 @@
         "react/promise": "^2.8"
     },
     "autoload": {
-        "psr-4": { "ClanCats\\Hydrahon\\": "src/" }
+        "psr-4": { "Crys\\Hydrahon\\": "src/" }
     }
 }

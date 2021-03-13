@@ -1,17 +1,13 @@
-<?php namespace Crys\Hydrahon\Translator;
+<?php
 
-/**
- * Mysql query translator
- **
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
+
+namespace Crys\Hydrahon\Translator;
 
 use Crys\Hydrahon\BaseQuery;
 use Crys\Hydrahon\Query\Expression;
 use Crys\Hydrahon\TranslatorInterface;
 use Crys\Hydrahon\Exception;
-
 use Crys\Hydrahon\Query\Sql\Select;
 use Crys\Hydrahon\Query\Sql\Insert;
 use Crys\Hydrahon\Query\Sql\Replace;
@@ -24,204 +20,95 @@ use Crys\Hydrahon\Query\Sql\Exists;
 
 class Mysql implements TranslatorInterface
 {
-    /**
-     * The query parameters
-     *
-     * @var array
-     */
-    protected $parameters = array();
+    protected array $parameters = [];
+    protected array $attributes = [];
 
     /**
-     * The current query attributes
-     *
-     * @var array
+     * @throws Exception
      */
-    protected $attributes = array();
-
-    /**
-     * Translate the given query object and return the results as
-     * argument array
-     *
-     * @param BaseQuery                 $query
-     * @return array
-     */
-    public function translate(BaseQuery $query)
+    public function translate(BaseQuery $query): array
     {
-        // retrive the query attributes
         $this->attributes = $query->attributes();
 
-        // handle SQL SELECT queries
-        if ($query instanceof Select)
-        {
+        if ($query instanceof Select) {
             $queryString = $this->translateSelect();
-        }
-        // handle SQL INSERT queries
-        elseif ($query instanceof Replace)
-        {
+        } elseif ($query instanceof Replace) {
             $queryString = $this->translateInsert('replace');
-        }
-        // handle SQL INSERT queries
-        elseif ($query instanceof Insert)
-        {
+        } elseif ($query instanceof Insert) {
             $queryString = $this->translateInsert('insert');
-        }
-        // handle SQL UPDATE queries
-        elseif ($query instanceof Update)
-        {
+        } elseif ($query instanceof Update) {
             $queryString = $this->translateUpdate();
-        }
-        // handle SQL UPDATE queries
-        elseif ($query instanceof Delete)
-        {
+        } elseif ($query instanceof Delete) {
             $queryString = $this->translateDelete();
-        }
-        // handle SQL DROP queries
-        elseif ($query instanceof Drop)
-        {
+        } elseif ($query instanceof Drop) {
             $queryString = $this->translateDrop();
-        }
-        // handle SQL TRUNCATE queries
-        elseif ($query instanceof Truncate)
-        {
+        } elseif ($query instanceof Truncate) {
             $queryString = $this->translateTruncate();
-        }
-        elseif ($query instanceof Exists)
-        {
+        } elseif ($query instanceof Exists) {
             $queryString = $this->translateExists();
-        }
-        // everything else is wrong
-        else
-        {
-            throw new Exception('Unknown query type. Cannot translate: '.get_class($query));
+        } else {
+            throw new Exception('Unknown query type. Cannot translate: ' . get_class($query));
         }
 
-        // get the query parameters and reset
-        $queryParameters = $this->parameters; $this->clearParameters();
+        $queryParameters = $this->parameters;
+        $this->clearParameters();
 
-        return array($queryString, $queryParameters);
+        return [$queryString, $queryParameters];
     }
 
-    /**
-     * Returns the an attribute value for the given key
-     * 
-     * @param string                $key
-     * @return mixed
-     */
-    protected function attr($key)
+    protected function attr(string $key): mixed
     {
         return $this->attributes[$key];
     }
 
-    /**
-     * Check if the given argument is an sql expression
-     *
-     * @param mixed                 $expression
-     * @return bool
-     */
-    protected function isExpression($expression)
+    protected function clearParameters(): void
     {
-        return $expression instanceof Expression;
+        $this->parameters = [];
     }
 
-    /**
-     * Check if the given argument is an sql function
-     *
-     * @param mixed                 $function
-     * @return bool
-     */
-    protected function isFunction($function)
-    {
-        return $function instanceof Func;
-    }
-
-    /**
-     * Clear all set parameters
-     *
-     * @return void
-     */
-    protected function clearParameters()
-    {
-        $this->parameters = array();
-    }
-
-    /**
-     * Adds a parameter to the builder
-     *
-     * @return void
-     */
-    protected function addParameter($value)
+    protected function addParameter(mixed $value): void
     {
         $this->parameters[] = $value;
     }
 
-    /**
-     * creates an parameter and adds it
-     *
-     * @param mixed         $value
-     * @return string
-     */
-    protected function param($value)
+    protected function param(mixed $value): mixed
     {
-        if (!$this->isExpression($value)) 
-        {
-            $this->addParameter($value); return '?';
+        if ($value instanceof Expression) {
+            $this->addParameter($value);
+
+            return '?';
         }
 
         return $value;
     }
 
     /**
-     * Filters the parameters removes the keys and Expressions
-     *
-     * @param array         $parameters
-     * @return array
+     * @throws Exception
      */
-    protected function filterParameters($parameters)
+    protected function escape(object|string $string): string|int|float
     {
-        return array_values(array_filter($parameters, function ($item) 
-        {
-            return !$this->isExpression($item);
-        }));
-    }
-
-    /**
-     * Escape / wrap an string for sql
-     *
-     * @param string|object                 $string
-     */
-    protected function escape($string)
-    {
-        if (is_object($string))
-        {
-            if ($this->isExpression($string)) 
-            {
+        if (is_object($string)) {
+            if ($string instanceof Expression) {
                 return $string->value();
             }
-            elseif ($this->isFunction($string))
-            {
+
+            if ($string instanceof Func) {
                 return $this->escapeFunction($string);
             }
-            else
-            {
-                throw new Exception('Cannot translate object of class: ' . get_class($string));
-            }
-        }
-        
-        // the string might contain an 'as' statement that we wil have to split.
-        if (strpos($string, ' as ') !== false) 
-        {
-            $string = explode(' as ', $string);
 
-            return $this->escape(trim($string[0])) . ' as ' . $this->escape(trim($string[1]));
+            throw new Exception('Cannot translate object of class: ' . get_class($string));
         }
 
-        // it also might contain dott seperations we have to split
-        if (strpos($string, '.') !== false) 
-        {
+        if (str_contains($string, ' as ')) {
+            [$table, $alias] = explode(' as ', $string);
+
+            return $this->escape(trim($table)) . ' as ' . $this->escape(trim($alias));
+        }
+
+        if (str_contains($string, '.')) {
             $string = explode('.', $string);
 
-            foreach ($string as $key => $item) 
-            {
+            foreach ($string as $key => $item) {
                 $string[$key] = $this->escapeIdentifier($item);
             }
 
@@ -231,32 +118,21 @@ class Mysql implements TranslatorInterface
         return $this->escapeIdentifier($string);
     }
 
-    /**
-     * Function to escape identifier names (columns and tables)
-     * Doubles backticks, removes null bytes
-     * https://dev.mysql.com/doc/refman/8.0/en/identifiers.html
-     *
-     * @var string
-     */
-    public function escapeIdentifier($identifier)
+    public function escapeIdentifier(mixed $identifier): string
     {
-        return '`' . str_replace(array('`', "\0"), array('``',''), $identifier) . '`';
+        return '`' . str_replace(array('`', "\0"), array('``', ''), $identifier) . '`';
     }
 
     /**
-     * Escapes an sql function object
-     * 
-     * @param Func              $function
-     * @return string
+     * @throws Exception
      */
-    protected function escapeFunction($function)
+    protected function escapeFunction(Func $function): string
     {
         $buffer = $function->name() . '(';
 
         $arguments = $function->arguments();
 
-        foreach($arguments as &$argument)
-        {
+        foreach ($arguments as &$argument) {
             $argument = $this->escape($argument);
         }
 
@@ -264,15 +140,11 @@ class Mysql implements TranslatorInterface
     }
 
     /**
-     * Escape an array of items an seprate them with a comma
-     *
-     * @param array         $array
-     * @return string
+     * @throws Exception
      */
-    protected function escapeList($array)
+    protected function escapeList(array $array): string
     {
-        foreach ($array as $key => $item) 
-        {
+        foreach ($array as $key => $item) {
             $array[$key] = $this->escape($item);
         }
 
@@ -280,188 +152,132 @@ class Mysql implements TranslatorInterface
     }
 
     /**
-     * get and escape the table name
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function escapeTable($allowAlias = true)
+    protected function escapeTable(bool $allowAlias = true): string
     {
-        $table = $this->attr('table');
+        $table    = $this->attr('table');
         $database = $this->attr('database');
-        $buffer = '';
+        $buffer   = '';
 
-        if (!is_null($database))
-        {
+        if (!is_null($database)) {
             $buffer .= $this->escape($database) . '.';
         }
 
-        // when the table is an array we have a table with alias
-        if (is_array($table)) 
-        {
+        if (is_array($table)) {
             reset($table);
 
-            // the table might be a subselect so check that
-            // first and compile the select if it is one
-            if ($table[key($table)] instanceof Select)
-            {
-                $translator = new static;
+            if ($table[key($table)] instanceof Select) {
+                $translator = new static();
 
-                // translate the subselect
-                list($subQuery, $subQueryParameters) = $translator->translate($table[key($table)]);
+                [$subQuery, $subQueryParameters] = $translator->translate($table[key($table)]);
 
-                // merge the parameters
-                foreach($subQueryParameters as $parameter)
-                {
+                foreach ($subQueryParameters as $parameter) {
                     $this->addParameter($parameter);
                 }
 
                 return '(' . $subQuery . ') as ' . $this->escape(key($table));
             }
 
-            // otherwise continue with normal table
-            if ($allowAlias)
-            {
+            if ($allowAlias) {
                 $table = key($table) . ' as ' . $table[key($table)];
             } else {
                 $table = key($table);
             }
         }
 
-        return $buffer . $this->escape($table);    
+        return $buffer . $this->escape($table);
     }
 
-    /**
-     * Convert data to parameters and bind them to the query
-     *
-     * @param array         $params
-     * @return string
-     */
-    protected function parameterize($params)
+    protected function parameterize(array $params): string
     {
-        foreach ($params as $key => $param) 
-        {
+        foreach ($params as $key => $param) {
             $params[$key] = $this->param($param);
         }
 
         return implode(', ', $params);
     }
 
-    /*
-     * -- FROM HERE TRANSLATE FUNCTIONS FOLLOW
-     */
-
     /**
-     * Translate the current query to an SQL insert statement
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateInsert($key)
+    protected function translateInsert(string $key): string
     {
         $build = ($this->attr('ignore') ? $key . ' ignore' : $key);
 
         $build .= ' into ' . $this->escapeTable(false) . ' ';
 
-        if (!$valueCollection = $this->attr('values'))
-        {
+        if (!$valueCollection = $this->attr('values')) {
             throw new Exception('Cannot build insert query without values.');
         }
 
-        // Get the array keys from the first array in the collection.
-        // We use them as insert keys. If you pass an array collection with
-        // missing keys or a diffrent structure well... f*ck
         $build .= '(' . $this->escapeList(array_keys(reset($valueCollection))) . ') values ';
 
-        // add the array values.
-        foreach ($valueCollection as $values) 
-        {
+        foreach ($valueCollection as $values) {
             $build .= '(' . $this->parameterize($values) . '), ';
         }
 
-        // cut the last comma away
         return substr($build, 0, -2);
     }
 
     /**
-     * Translate the current query to an SQL update statement
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateUpdate()
+    protected function translateUpdate(): string
     {
         $build = 'update ' . $this->escapeTable() . ' set ';
 
-        // add the array values.
         foreach ($this->attr('values') as $key => $value) {
             $build .= $this->escape($key) . ' = ' . $this->param($value) . ', ';
         }
 
-        // cut away the last comma and space
         $build = substr($build, 0, -2);
 
-        // build the where statements
-        if ($wheres = $this->attr('wheres'))
-        {
+        if ($wheres = $this->attr('wheres')) {
             $build .= $this->translateWhere($wheres);
         }
-    
-        // build offset and limit
-        if ($this->attr('limit'))
-        {
-             $build .= $this->translateLimit();
+
+        if ($this->attr('limit')) {
+            $build .= $this->translateLimit();
         }
 
         return $build;
     }
 
     /**
-     * Translate the current query to an SQL delete statement
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateDelete()
+    protected function translateDelete(): string
     {
         $build = 'delete from ' . $this->escapeTable(false);
 
-        // build the where statements
-        if ($wheres = $this->attr('wheres'))
-        {
+        if ($wheres = $this->attr('wheres')) {
             $build .= $this->translateWhere($wheres);
         }
-    
-        // build offset and limit
-        if ($this->attr('limit'))
-        {
-             $build .= $this->translateLimit();
+
+        if ($this->attr('limit')) {
+            $build .= $this->translateLimit();
         }
 
         return $build;
     }
 
     /**
-     * Translate the current query to an SQL select statement
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateSelect()
+    protected function translateSelect(): string
     {
-        // normal or distinct selection?
         $build = ($this->attr('distinct') ? 'select distinct' : 'select') . ' ';
 
-        // build the selected fields 
         $fields = $this->attr('fields');
 
-        if (!empty($fields)) 
-        {
-            foreach ($fields as $key => $field) 
-            {
-                list($column, $alias) = $field;
+        if (!empty($fields)) {
+            foreach ($fields as $field) {
+                [$column, $alias] = $field;
 
-                if (!is_null($alias)) 
-                {
+                if (!is_null($alias)) {
                     $build .= $this->escape($column) . ' as ' . $this->escape($alias);
-                }
-                else 
-                {
+                } else {
                     $build .= $this->escape($column);
                 }
 
@@ -469,42 +285,29 @@ class Mysql implements TranslatorInterface
             }
 
             $build = substr($build, 0, -2);
-        } 
-        else 
-        {
+        } else {
             $build .= '*';
         }
 
-        // append the table
         $build .= ' from ' . $this->escapeTable();
 
-        // build the join statements
-        if ($this->attr('joins'))
-        {
+        if ($this->attr('joins')) {
             $build .= $this->translateJoins();
         }
 
-        // build the where statements
-        if ($wheres = $this->attr('wheres'))
-        {
+        if ($wheres = $this->attr('wheres')) {
             $build .= $this->translateWhere($wheres);
         }
 
-        // build the groups
-        if ($this->attr('groups'))
-        {
+        if ($this->attr('groups')) {
             $build .= $this->translateGroupBy();
         }
 
-        // build the order statement
-        if ($this->attr('orders'))
-        {
+        if ($this->attr('orders')) {
             $build .= $this->translateOrderBy();
         }
-    
-        // build offset and limit
-        if ($this->attr('limit') || $this->attr('offset'))
-        {
+
+        if ($this->attr('limit') || $this->attr('offset')) {
             $build .= $this->translateLimitWithOffset();
         }
 
@@ -512,42 +315,29 @@ class Mysql implements TranslatorInterface
     }
 
     /**
-     * Translate the where statements into sql 
-     * 
-     * @param array                 $wheres
-     * @return string
+     * @throws Exception
      */
-    protected function translateWhere($wheres)
+    protected function translateWhere(array $wheres): string
     {
         $build = '';
 
-        foreach ($wheres as $where) 
-        {
-            // to make nested wheres possible you can pass an closure
-            // wich will create a new query where you can add your nested wheres
-            if (!isset($where[2]) && isset( $where[1] ) && $where[1] instanceof BaseQuery ) 
-            {
+        foreach ($wheres as $where) {
+            if (!isset($where[2]) && isset($where[1]) && $where[1] instanceof BaseQuery) {
                 $subAttributes = $where[1]->attributes();
 
-                // The parameters get added by the call of compile where
                 $build .= ' ' . $where[0] . ' ( ' . substr($this->translateWhere($subAttributes['wheres']), 7) . ' )';
 
                 continue;
             }
 
-            // when we have an array as where values we have
-            // to parameterize them
-            if (is_array($where[3])) 
-            {
+            if (is_array($where[3])) {
                 $where[3] = '(' . $this->parameterize($where[3]) . ')';
             } else {
                 $where[3] = $this->param($where[3]);
             }
 
-            // we always need to escepe where 1 wich referrs to the key
             $where[1] = $this->escape($where[1]);
 
-            // implode the beauty
             $build .= ' ' . implode(' ', $where);
         }
 
@@ -555,36 +345,25 @@ class Mysql implements TranslatorInterface
     }
 
     /**
-     * Build the sql join statements
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateJoins()
+    protected function translateJoins(): string
     {
         $build = '';
 
-        foreach ($this->attr('joins') as $join) 
-        {
-            // get the type and table
-            $type = $join[0]; $table = $join[1];
+        foreach ($this->attr('joins') as $join) {
+            [$type, $table] = $join;
 
-            // table 
-            if (is_array($table)) 
-            {
+            if (is_array($table)) {
                 reset($table);
 
-                // the table might be a subselect so check that
-                // first and compile the select if it is one
-                if ($table[key($table)] instanceof Select)
-                {
-                    $translator = new static;
+                if ($table[key($table)] instanceof Select) {
+                    $translator = new static();
 
-                    // translate the subselect
-                    list($subQuery, $subQueryParameters) = $translator->translate($table[key($table)]);
+                    [$subQuery, $subQueryParameters] = $translator->translate($table[key($table)]);
 
                     // merge the parameters
-                    foreach($subQueryParameters as $parameter)
-                    {
+                    foreach ($subQueryParameters as $parameter) {
                         $this->addParameter($parameter);
                     }
 
@@ -592,13 +371,9 @@ class Mysql implements TranslatorInterface
                 }
             }
 
-            // start the join
             $build .= ' ' . $type . ' join ' . $this->escape($table) . ' on ';
 
-            // to make nested join conditions possible you can pass an closure
-            // wich will create a new query where you can add your nested ons and wheres
-            if (!isset($join[3]) && isset($join[2]) && $join[2] instanceof BaseQuery) 
-            {
+            if (!isset($join[3]) && isset($join[2]) && $join[2] instanceof BaseQuery) {
                 $subAttributes = $join[2]->attributes();
 
                 $joinConditions = '';
@@ -607,24 +382,20 @@ class Mysql implements TranslatorInterface
                 reset($subAttributes['ons']);
                 $subAttributes['ons'][key($subAttributes['ons'])][0] = '';
 
-                foreach($subAttributes['ons'] as $on)
-                {
-                    list($type, $localKey, $operator, $referenceKey) = $on;
-                    $joinConditions .= ' ' . $type . ' ' . $this->escape($localKey) . ' ' . $operator . ' ' . $this->escape($referenceKey);
+                foreach ($subAttributes['ons'] as $on) {
+                    [$type, $localKey, $operator, $referenceKey] = $on;
+                    $joinConditions .= ' ' . $type . ' ' . $this->escape(
+                            $localKey
+                        ) . ' ' . $operator . ' ' . $this->escape($referenceKey);
                 }
 
                 $build .= trim($joinConditions);
 
-                // compile the where if set
-                if (!empty($subAttributes['wheres']))
-                {
+                if (!empty($subAttributes['wheres'])) {
                     $build .= ' and ' . substr($this->translateWhere($subAttributes['wheres']), 7);
                 }
-            }
-            else
-            {
-                // othewise default join
-                list($type, $table, $localKey, $operator, $referenceKey) = $join;
+            } else {
+                [, $table, $localKey, $operator, $referenceKey] = $join;
                 $build .= $this->escape($localKey) . ' ' . $operator . ' ' . $this->escape($referenceKey);
             }
         }
@@ -633,25 +404,15 @@ class Mysql implements TranslatorInterface
     }
 
     /**
-     * Build the order by statement
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateOrderBy()
+    protected function translateOrderBy(): string
     {
-        $build = " order by ";
+        $build = ' order by ';
 
-        foreach ($this->attr('orders') as $column => $direction) 
-        {
-            // in case a raw value is given we had to 
-            // put the column / raw value an direction inside another
-            // array because we cannot make objects to array keys.
-            if (is_array($direction))
-            {
-                // This only works in php 7 the php 5 fix is below 
-                //list($column, $direction) = $direction;
-                $column = $direction[0];
-                $direction = $direction[1];
+        foreach ($this->attr('orders') as $column => $direction) {
+            if (is_array($direction)) {
+                [$column, $direction] = $direction;
             }
 
             $build .= $this->escape($column) . ' ' . $direction . ', ';
@@ -661,73 +422,52 @@ class Mysql implements TranslatorInterface
     }
 
     /**
-     * Build the gorup by statemnet
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateGroupBy()
+    protected function translateGroupBy(): string
     {
         return ' group by ' . $this->escapeList($this->attr('groups'));
     }
 
-    /**
-     * Build the limit and offset part
-     *
-     * @return string
-     */
-    protected function translateLimitWithOffset()
+    protected function translateLimitWithOffset(): string
     {
-        return ' limit ' . ((int) ($this->attr('offset'))) . ', ' . ((int) ($this->attr('limit')));
+        return ' limit ' . ((int)($this->attr('offset'))) . ', ' . ((int)($this->attr('limit')));
+    }
+
+    protected function translateLimit(): string
+    {
+        return ' limit ' . ((int)$this->attr('limit'));
     }
 
     /**
-     * Build the limit and offset part
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateLimit()
+    protected function translateDrop(): string
     {
-        return ' limit ' . ((int) $this->attr('limit'));
+        return 'drop table ' . $this->escapeTable() . ';';
     }
 
     /**
-     * Translate the current query to an sql DROP statement
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateDrop()
+    protected function translateTruncate(): string
     {
-        return 'drop table ' . $this->escapeTable() .';';
+        return 'truncate table ' . $this->escapeTable() . ';';
     }
 
     /**
-     * Translate the current query to an sql DROP statement
-     *
-     * @return string
+     * @throws Exception
      */
-    protected function translateTruncate()
+    protected function translateExists(): string
     {
-        return 'truncate table ' . $this->escapeTable() .';';
-    }
+        $translator = new static();
 
-    /**
-     * Translate the exists querry
-     *
-     * @return string
-     */
-    protected function translateExists()
-    {
-        $translator = new static;
+        [$subQuery, $subQueryParameters] = $translator->translate($this->attr('select'));
 
-        // translate the subselect
-        list($subQuery, $subQueryParameters) = $translator->translate($this->attr('select'));
-
-        // merge the parameters
-        foreach($subQueryParameters as $parameter)
-        {
+        foreach ($subQueryParameters as $parameter) {
             $this->addParameter($parameter);
         }
 
-        return 'select exists(' . $subQuery .') as `exists`';
+        return 'select exists(' . $subQuery . ') as `exists`';
     }
 }

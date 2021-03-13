@@ -1,68 +1,28 @@
-<?php namespace Crys\Hydrahon\Query\Sql;
+<?php
 
-/**
- * DB Function
- ** 
- * @package         Hydrahon
- * @copyright       2015 Mario Döring
- */
+declare(strict_types=1);
 
-class Func 
+namespace Crys\Hydrahon\Query\Sql;
+
+class Func
 {
-	/**
-	 * the function name
-	 *
-	 * @var string
-	 */
-	protected $name = null;
+    protected string $name;
 
-	/**
-	 * The function arguments
-	 *
-	 * @var array<mixed>
-	 */
-	protected $arguments = array();
-	
-	/**
-	 * The constructor that assigns our value
-	 *
-	 * @param string 		$name
-	 * @param array...		$arguments
-	 * @return void
-	 */
-	public function __construct()
-	{
-		$arguments = func_get_args();
+    protected array $arguments = array();
 
-		// throw an error when no arguments are given
-		if (empty($arguments)) {
-			throw new Exception("Cannot create function expression without arguments.");
-		}
+    public function __construct(string $name, mixed ...$arguments)
+    {
+        $this->name      = $name;
+        $this->arguments = $arguments;
+    }
 
-		// the first argument is always the function name
-		$this->name = array_shift($arguments);
+    public function name(): string
+    {
+        return $this->name;
+    }
 
-		// and assign the arguments
-		$this->arguments = $arguments;
-	}
-
-	/**
-	 * Return the functions name
-	 * 
-	 * @return string 
-	 */
-	public function name()
-	{
-		return $this->name;
-	}
-
-	/**
-	 * Return the functions arguments
-	 * 
-	 * @return array 
-	 */
-	public function arguments()
-	{
-		return $this->arguments;
-	}
+    public function arguments(): array
+    {
+        return $this->arguments;
+    }
 }

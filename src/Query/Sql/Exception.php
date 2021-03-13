@@ -1,12 +1,11 @@
-<?php namespace Crys\Hydrahon\Query\Sql;
+<?php
 
-/**
- * Hydrahon exceptions
- ** 
- * @package 		Hydrahon
- * @copyright 		2015 Mario Döring
- */
+declare(strict_types=1);
+
+namespace Crys\Hydrahon\Query\Sql;
 
 use Crys\Hydrahon\Exception as BaseException;
 
-class Exception extends BaseException {}
+class Exception extends BaseException
+{
+}
