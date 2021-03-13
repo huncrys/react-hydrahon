@@ -70,15 +70,11 @@ class Translator implements TranslatorInterface
         $this->parameters[] = $value;
     }
 
-    protected function param(mixed $value): mixed
+    protected function param(mixed $value): string
     {
-        if ($value instanceof Expression) {
-            $this->addParameter($value);
+        $this->addParameter($value);
 
-            return '?';
-        }
-
-        return $value;
+        return '?';
     }
 
     /**
