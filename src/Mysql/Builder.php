@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Crys\Hydrahon\Mysql;
 
-use Crys\Hydrahon\Mysql\BaseQuery;
 use Crys\Hydrahon\Mysql\Query\Delete;
 use Crys\Hydrahon\Mysql\Query\Drop;
+use Crys\Hydrahon\Mysql\Query\Exception;
 use Crys\Hydrahon\Mysql\Query\Insert;
 use Crys\Hydrahon\Mysql\Query\Select;
 use Crys\Hydrahon\Mysql\Query\Table;
@@ -16,7 +16,10 @@ use Crys\Hydrahon\Mysql\Query\Update;
 class Builder extends BaseQuery
 {
     /**
-     * @throws Sql\Exception
+     * @param string|array|null $table
+     * @param string|null $alias
+     * @return Table
+     * @throws Exception
      */
     public function table(string|array|null $table = null, ?string $alias = null): Table
     {
@@ -27,7 +30,7 @@ class Builder extends BaseQuery
     }
 
     /**
-     * @throws Sql\Exception
+     * @throws Exception
      */
     public function select(string|array|null $table = null, string|array|null $fields = null): Select
     {
@@ -35,7 +38,7 @@ class Builder extends BaseQuery
     }
 
     /**
-     * @throws Sql\Exception
+     * @throws Exception
      */
     public function insert(string|array|null $table = null, array $values = []): Insert
     {
@@ -43,7 +46,7 @@ class Builder extends BaseQuery
     }
 
     /**
-     * @throws Sql\Exception
+     * @throws Exception
      */
     public function update(string|array|null $table = null, array $values = []): Update
     {
@@ -51,7 +54,7 @@ class Builder extends BaseQuery
     }
 
     /**
-     * @throws Sql\Exception
+     * @throws Exception
      */
     public function delete(string|array|null $table = null): Delete
     {
@@ -59,7 +62,7 @@ class Builder extends BaseQuery
     }
 
     /**
-     * @throws Sql\Exception
+     * @throws Exception
      */
     public function drop(string|array|null $table = null): Drop
     {
@@ -67,7 +70,7 @@ class Builder extends BaseQuery
     }
 
     /**
-     * @throws Sql\Exception
+     * @throws Exception
      */
     public function truncate(string|array|null $table = null): Truncate
     {
