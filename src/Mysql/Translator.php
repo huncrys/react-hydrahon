@@ -230,6 +230,14 @@ class Translator implements TranslatorInterface
             $build .= $this->escape($key) . ' = ' . $this->param($value) . ', ';
         }
 
+        foreach ($this->attr('increments') as $key => $value) {
+            $build .= $this->escape($key) . ' = ' . $this->escape($key) . ' + ' . $this->param($value) . ', ';
+        }
+
+        foreach ($this->attr('decrements') as $key => $value) {
+            $build .= $this->escape($key) . ' = ' . $this->escape($key) . ' - ' . $this->param($value) . ', ';
+        }
+
         $build = substr($build, 0, -2);
 
         if ($wheres = $this->attr('wheres')) {
