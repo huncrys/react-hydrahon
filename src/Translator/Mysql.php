@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon\Translator;
+<?php namespace Crys\Hydrahon\Translator;
 
 /**
  * Mysql query translator
@@ -7,20 +7,20 @@
  * @copyright       2015 Mario Döring
  */
 
-use ClanCats\Hydrahon\BaseQuery;
-use ClanCats\Hydrahon\Query\Expression;
-use ClanCats\Hydrahon\TranslatorInterface;
-use ClanCats\Hydrahon\Exception;
+use Crys\Hydrahon\BaseQuery;
+use Crys\Hydrahon\Query\Expression;
+use Crys\Hydrahon\TranslatorInterface;
+use Crys\Hydrahon\Exception;
 
-use ClanCats\Hydrahon\Query\Sql\Select;
-use ClanCats\Hydrahon\Query\Sql\Insert;
-use ClanCats\Hydrahon\Query\Sql\Replace;
-use ClanCats\Hydrahon\Query\Sql\Update;
-use ClanCats\Hydrahon\Query\Sql\Delete;
-use ClanCats\Hydrahon\Query\Sql\Drop;
-use ClanCats\Hydrahon\Query\Sql\Truncate;
-use ClanCats\Hydrahon\Query\Sql\Func;
-use ClanCats\Hydrahon\Query\Sql\Exists;
+use Crys\Hydrahon\Query\Sql\Select;
+use Crys\Hydrahon\Query\Sql\Insert;
+use Crys\Hydrahon\Query\Sql\Replace;
+use Crys\Hydrahon\Query\Sql\Update;
+use Crys\Hydrahon\Query\Sql\Delete;
+use Crys\Hydrahon\Query\Sql\Drop;
+use Crys\Hydrahon\Query\Sql\Truncate;
+use Crys\Hydrahon\Query\Sql\Func;
+use Crys\Hydrahon\Query\Sql\Exists;
 
 class Mysql implements TranslatorInterface
 {

@@ -10,16 +10,12 @@ Hydrahon is a **standalone** database / SQL query builder written in PHP. It was
 
 Hydrahon only generates a query **string** and an array of parameters. On its own, it is not able to execute a query.
 
-[![Build Status](https://travis-ci.org/ClanCats/Hydrahon.svg?branch=master)](https://travis-ci.org/ClanCats/Hydrahon)
-[![Packagist](https://img.shields.io/packagist/dt/clancats/hydrahon.svg)](https://packagist.org/packages/clancats/hydrahon)
-[![Packagist](https://img.shields.io/packagist/l/clancats/hydrahon.svg)](https://github.com/ClanCats/Hydrahon/blob/master/LICENSE)
-[![GitHub release](https://img.shields.io/github/release/clancats/hydrahon.svg)](https://github.com/ClanCats/Hydrahon/releases)
+[![Packagist](https://img.shields.io/packagist/dt/crys/react-hydrahon.svg)](https://packagist.org/packages/crys/react-hydrahon)
+[![Packagist](https://img.shields.io/packagist/l/crys/react-hydrahon.svg)](https://github.com/huncrys/react-Hydrahon/blob/master/LICENSE)
 
 ## Status
 
 * The Hydrahon **MySQL** query builder is stable and used in production.
-* The Hydrahon **AQL** (Arango Query Language) query builder is currently in development.
-* A builder for Elasticsearch is on my mind but not in development.
 
 ## Installation
 

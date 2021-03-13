@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon;
+<?php namespace Crys\Hydrahon;
 
 /**
  * Query Builder manager
@@ -32,12 +32,12 @@ class Builder
     /**
      * Extend the query builder by a new grammar
      *
-     * @throws \ClanCats\Hydrahon\Exception
-     *
-     * @param string                $grammarKey
+     * @param string $grammarKey
      * @param string                $queryBuilder
      * @param string                $queryTranslator
      * @return void
+     *@throws \Crys\Hydrahon\Exception
+     *
      */
     public static function extend($grammarKey, $queryBuilder, $queryTranslator)
     {
@@ -59,7 +59,7 @@ class Builder
     /**
      * Currently loaded query translator
      *
-     * @var \ClanCats\Hydrahon\TranslatorInterface
+     * @var \Crys\Hydrahon\TranslatorInterface
      */
     protected $queryTranslator = null;
 
@@ -73,11 +73,11 @@ class Builder
     /**
      * Create a new Hydrahon builder instance using the giving grammar
      *
-     * @throws \ClanCats\Hydrahon\Exception
-     *
-     * @param string                $grammarKey
+     * @param string $grammarKey
      * @param callable              $executionCallback
      * @return void
+     *@throws \Crys\Hydrahon\Exception
+     *
      */
     public function __construct($grammarKey, $executionCallback)
     {

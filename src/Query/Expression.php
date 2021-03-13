@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon\Query;
+<?php namespace Crys\Hydrahon\Query;
 
 /**
  * DB Expression

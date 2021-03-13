@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon\Query\Sql;
+<?php namespace Crys\Hydrahon\Query\Sql;
 
 /**
  * SQL query object

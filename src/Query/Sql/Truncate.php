@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon\Query\Sql;
+<?php namespace Crys\Hydrahon\Query\Sql;
 
 /**
  * SQL query object
@@ -7,7 +7,7 @@
  * @copyright       2015 Mario Döring
  */
 
-use ClanCats\Hydrahon\BaseQuery;
+use Crys\Hydrahon\BaseQuery;
 
 class Truncate extends Base
 {

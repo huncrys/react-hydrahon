@@ -1,6 +1,6 @@
 <?php 
 
-namespace ClanCats\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Query\Sql;
 
 /**
  * Exists query 
@@ -11,7 +11,7 @@ namespace ClanCats\Hydrahon\Query\Sql;
  * @copyright       2015 Mario Döring
  */
 
-use ClanCats\Hydrahon\BaseQuery;
+use Crys\Hydrahon\BaseQuery;
 
 class Exists extends BaseQuery implements FetchableInterface
 {

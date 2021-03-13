@@ -1,6 +1,6 @@
 <?php 
 
-namespace ClanCats\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Query\Sql;
 
 /**
  * SQL query object
@@ -9,9 +9,9 @@ namespace ClanCats\Hydrahon\Query\Sql;
  * @copyright       2015 Mario Döring
  */
 
-use ClanCats\Hydrahon\Query\Expression;
+use Crys\Hydrahon\Query\Expression;
 
-use ClanCats\Hydrahon\BaseQuery;
+use Crys\Hydrahon\BaseQuery;
 
 class Select extends SelectBase implements FetchableInterface
 {

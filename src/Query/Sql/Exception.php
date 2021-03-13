@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon\Query\Sql;
+<?php namespace Crys\Hydrahon\Query\Sql;
 
 /**
  * Hydrahon exceptions
@@ -7,6 +7,6 @@
  * @copyright 		2015 Mario Döring
  */
 
-use ClanCats\Hydrahon\Exception as BaseException;
+use Crys\Hydrahon\Exception as BaseException;
 
 class Exception extends BaseException {}

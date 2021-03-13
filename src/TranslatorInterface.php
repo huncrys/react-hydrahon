@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon;
+<?php namespace Crys\Hydrahon;
 
 /**
  * Query translator interface

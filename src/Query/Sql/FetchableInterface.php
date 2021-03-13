@@ -1,6 +1,6 @@
 <?php 
 
-namespace ClanCats\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Query\Sql;
 
 /**
  * Does currently nothing itself but helps identifying queries that

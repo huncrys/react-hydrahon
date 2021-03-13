@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon\Query;
+<?php namespace Crys\Hydrahon\Query;
 
 /**
  * SQL query object
@@ -7,16 +7,16 @@
  * @copyright       2015 Mario Döring
  */
 
-use ClanCats\Hydrahon\BaseQuery;
+use Crys\Hydrahon\BaseQuery;
 
-use ClanCats\Hydrahon\Query\Sql\Select;
-use ClanCats\Hydrahon\Query\Sql\Insert;
-use ClanCats\Hydrahon\Query\Sql\Update;
-use ClanCats\Hydrahon\Query\Sql\Delete;
-use ClanCats\Hydrahon\Query\Sql\Drop;
-use ClanCats\Hydrahon\Query\Sql\Truncate;
-use ClanCats\Hydrahon\Query\Sql\Table;
-use ClanCats\Hydrahon\Query\Sql\Base;
+use Crys\Hydrahon\Query\Sql\Select;
+use Crys\Hydrahon\Query\Sql\Insert;
+use Crys\Hydrahon\Query\Sql\Update;
+use Crys\Hydrahon\Query\Sql\Delete;
+use Crys\Hydrahon\Query\Sql\Drop;
+use Crys\Hydrahon\Query\Sql\Truncate;
+use Crys\Hydrahon\Query\Sql\Table;
+use Crys\Hydrahon\Query\Sql\Base;
 
 class Sql extends BaseQuery
 {

@@ -1,2 +1,6 @@
-vendor/*
-coverage/*
+composer.lock
+composer.phar
+/vendor/
+/coverage/
+/.idea
+/.vscode

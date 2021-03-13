@@ -1,4 +1,4 @@
-<?php namespace ClanCats\Hydrahon;
+<?php namespace Crys\Hydrahon;
 
 /**
  * Base query object
@@ -7,7 +7,7 @@
  * @copyright       2015 Mario Döring
  */
 
-use ClanCats\Hydrahon\Query\Expression;
+use Crys\Hydrahon\Query\Expression;
 
 class BaseQuery
 {   
