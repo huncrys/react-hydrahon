@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Crys\Hydrahon\Mysql\Query;
 
 use Closure;
-use Crys\Hydrahon\Mysql\BaseQuery;
+use Crys\Hydrahon\BaseQuery;
 use Crys\Hydrahon\Exception as BaseException;
 use Crys\Hydrahon\Mysql\Expression;
 use React\Promise\PromiseInterface;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Crys\Hydrahon\Mysql;
 
+use Crys\Hydrahon\BaseQuery;
 use Crys\Hydrahon\Mysql\Query\Delete;
 use Crys\Hydrahon\Mysql\Query\Drop;
 use Crys\Hydrahon\Mysql\Query\Exception;

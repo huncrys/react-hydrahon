@@ -2,17 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Mysql;
+namespace Crys\Hydrahon;
 
 use BadMethodCallException;
-use Crys\Hydrahon\Exception;
 use Crys\Hydrahon\Mysql\Expression;
 use Crys\Hydrahon\Mysql\Query\Delete;
 use Crys\Hydrahon\Mysql\Query\FetchableInterface;
 use Crys\Hydrahon\Mysql\Query\Insert;
 use Crys\Hydrahon\Mysql\Query\Replace;
 use Crys\Hydrahon\Mysql\Query\Update;
-use Crys\Hydrahon\TranslatorInterface;
 use React\MySQL\ConnectionInterface;
 use React\MySQL\QueryResult;
 use React\Promise\PromiseInterface;
