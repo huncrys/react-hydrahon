@@ -47,7 +47,7 @@ class Select extends SelectBase implements FetchableInterface
         return $this;
     }
 
-    public function fields(object|array|string $fields): static
+    public function fields(object|array|string|null $fields = null): static
     {
         $this->fields = [];
 
