@@ -5,8 +5,11 @@
         "query",
         "builder",
         "mysql",
-        "sqlite",
-        "database"
+        "database",
+        "react",
+        "reactphp",
+        "async",
+        "promise"
     ],
     "homepage": "https://github.com/ClanCats/Hydrahon",
     "license": "MIT",
