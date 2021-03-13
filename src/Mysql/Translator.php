@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Translator;
+namespace Crys\Hydrahon\Mysql;
 
-use Crys\Hydrahon\BaseQuery;
-use Crys\Hydrahon\Query\Expression;
-use Crys\Hydrahon\TranslatorInterface;
+use Crys\Hydrahon\Mysql\BaseQuery;
 use Crys\Hydrahon\Exception;
-use Crys\Hydrahon\Query\Sql\Select;
-use Crys\Hydrahon\Query\Sql\Insert;
-use Crys\Hydrahon\Query\Sql\Replace;
-use Crys\Hydrahon\Query\Sql\Update;
-use Crys\Hydrahon\Query\Sql\Delete;
-use Crys\Hydrahon\Query\Sql\Drop;
-use Crys\Hydrahon\Query\Sql\Truncate;
-use Crys\Hydrahon\Query\Sql\Func;
-use Crys\Hydrahon\Query\Sql\Exists;
+use Crys\Hydrahon\Mysql\Expression;
+use Crys\Hydrahon\Mysql\Query\Delete;
+use Crys\Hydrahon\Mysql\Query\Drop;
+use Crys\Hydrahon\Mysql\Query\Exists;
+use Crys\Hydrahon\Mysql\Query\Func;
+use Crys\Hydrahon\Mysql\Query\Insert;
+use Crys\Hydrahon\Mysql\Query\Replace;
+use Crys\Hydrahon\Mysql\Query\Select;
+use Crys\Hydrahon\Mysql\Query\Truncate;
+use Crys\Hydrahon\Mysql\Query\Update;
+use Crys\Hydrahon\TranslatorInterface;
 
-class Mysql implements TranslatorInterface
+class Translator implements TranslatorInterface
 {
     protected array $parameters = [];
     protected array $attributes = [];

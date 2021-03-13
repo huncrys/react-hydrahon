@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Mysql\Query;
 
 use Closure;
 
@@ -60,7 +60,7 @@ class SelectBase extends Base
         }
 
         if (is_array($column)) {
-            $subquery = new SelectBase();
+            $subquery = new SelectBase($this->connection, $this->translator);
             foreach ($column as $key => $val) {
                 $subquery->where($key, $val, null, $type);
             }
@@ -70,7 +70,7 @@ class SelectBase extends Base
         }
 
         if ($column instanceof Closure) {
-            $subquery = new SelectBase();
+            $subquery = new SelectBase($this->connection, $this->translator);
 
             call_user_func_array($column, [&$subquery]);
 

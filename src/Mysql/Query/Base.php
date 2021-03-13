@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Mysql\Query;
 
 use Closure;
-use Crys\Hydrahon\BaseQuery;
+use Crys\Hydrahon\Mysql\BaseQuery;
 
 class Base extends BaseQuery
 {
@@ -43,7 +43,7 @@ class Base extends BaseQuery
         if (is_array($table) && ($closure = reset($table)) instanceof Closure) {
             $alias = key($table);
 
-            $subquery = new Select();
+            $subquery = new Select($this->connection, $this->translator);
 
             call_user_func_array($closure, [&$subquery]);
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Mysql\Query;
 
 use Crys\Hydrahon\Exception as BaseException;
 

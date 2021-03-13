@@ -2,26 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Query;
+namespace Crys\Hydrahon\Mysql;
 
-use Crys\Hydrahon\BaseQuery;
+use Crys\Hydrahon\Mysql\BaseQuery;
+use Crys\Hydrahon\Mysql\Query\Delete;
+use Crys\Hydrahon\Mysql\Query\Drop;
+use Crys\Hydrahon\Mysql\Query\Insert;
+use Crys\Hydrahon\Mysql\Query\Select;
+use Crys\Hydrahon\Mysql\Query\Table;
+use Crys\Hydrahon\Mysql\Query\Truncate;
+use Crys\Hydrahon\Mysql\Query\Update;
 
-use Crys\Hydrahon\Query\Sql\Select;
-use Crys\Hydrahon\Query\Sql\Insert;
-use Crys\Hydrahon\Query\Sql\Update;
-use Crys\Hydrahon\Query\Sql\Delete;
-use Crys\Hydrahon\Query\Sql\Drop;
-use Crys\Hydrahon\Query\Sql\Truncate;
-use Crys\Hydrahon\Query\Sql\Table;
-
-class Sql extends BaseQuery
+class Builder extends BaseQuery
 {
     /**
      * @throws Sql\Exception
      */
     public function table(string|array|null $table = null, ?string $alias = null): Table
     {
-        $query = new Table($this);
+        $query = new Table($this->connection, $this->translator, $this);
         $query->table($table, $alias);
 
         return $query;

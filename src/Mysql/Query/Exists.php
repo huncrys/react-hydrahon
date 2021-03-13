@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Mysql\Query;
 
-use Crys\Hydrahon\BaseQuery;
+use Crys\Hydrahon\Mysql\BaseQuery;
 
 class Exists extends BaseQuery implements FetchableInterface
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Query;
+namespace Crys\Hydrahon\Mysql;
 
 class Expression
 {

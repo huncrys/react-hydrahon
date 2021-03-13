@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Mysql\Query;
 
 use Closure;
+use Crys\Hydrahon\Mysql\BaseQuery;
 use Crys\Hydrahon\Exception as BaseException;
-use Crys\Hydrahon\Query\Expression;
-use Crys\Hydrahon\BaseQuery;
+use Crys\Hydrahon\Mysql\Expression;
+use React\Promise\PromiseInterface;
 
 class Select extends SelectBase implements FetchableInterface
 {
@@ -165,7 +166,7 @@ class Select extends SelectBase implements FetchableInterface
         }
 
         if (is_object($localKey) && ($localKey instanceof Closure)) {
-            $subquery = new SelectJoin();
+            $subquery = new SelectJoin($this->connection, $this->translator);
 
             call_user_func_array($localKey, [&$subquery]);
 
@@ -249,56 +250,51 @@ class Select extends SelectBase implements FetchableInterface
         return $this;
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function get(): mixed
+    public function get(): PromiseInterface
     {
-        $results = $this->executeResultFetcher();
+        return $this->run()
+            ->then(
+                function (array $results): mixed {
+                    if (!is_array($results) || empty($results)) {
+                        return [];
+                    }
 
-        if (!is_array($results) || empty($results)) {
-            $results = [];
-        }
+                    if ($this->forwardKey !== false && is_string($this->forwardKey)) {
+                        $rawResults = $results;
+                        $results    = [];
 
-        if (!empty($results) && $this->forwardKey !== false && is_string($this->forwardKey)) {
-            $rawResults = $results;
-            $results    = [];
+                        if (!is_array(reset($rawResults))) {
+                            throw new Exception('Cannot forward key, the result is no associated array.');
+                        }
 
-            if (!is_array(reset($rawResults))) {
-                throw new Exception('Cannot forward key, the result is no associated array.');
-            }
+                        foreach ($rawResults as $result) {
+                            $results[$result[$this->forwardKey]] = $result;
+                        }
+                    }
 
-            foreach ($rawResults as $result) {
-                $results[$result[$this->forwardKey]] = $result;
-            }
-        }
+                    if ($this->groupResults !== false && is_string($this->groupResults)) {
+                        $rawResults = $results;
+                        $results    = [];
 
-        if (!empty($results) && $this->groupResults !== false && is_string($this->groupResults)) {
-            $rawResults = $results;
-            $results    = [];
+                        if (!is_array(reset($rawResults))) {
+                            throw new Exception('Cannot forward key, the result is no associated array.');
+                        }
 
-            if (!is_array(reset($rawResults))) {
-                throw new Exception('Cannot forward key, the result is no associated array.');
-            }
+                        foreach ($rawResults as $key => $result) {
+                            $results[$result[$this->groupResults]][$key] = $result;
+                        }
+                    }
 
-            foreach ($rawResults as $key => $result) {
-                $results[$result[$this->groupResults]][$key] = $result;
-            }
-        }
+                    if ($this->limit === 1) {
+                        return reset($results);
+                    }
 
-        if ($this->limit === 1) {
-            $results = reset($results);
-        }
-
-        return $results;
+                    return $results;
+                }
+            );
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function one(): mixed
+    public function one(): PromiseInterface
     {
         return $this->limit(0, 1)->get();
     }
@@ -307,104 +303,112 @@ class Select extends SelectBase implements FetchableInterface
      * @throws Exception
      * @throws BaseException
      */
-    public function find(mixed $id, string|array|Closure $key = 'id'): mixed
+    public function find(mixed $id, string|array|Closure $key = 'id'): PromiseInterface
     {
         return $this->where($key, $id)->one();
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function first(string|array|Closure $key = 'id'): mixed
+    public function first(string|array|Closure $key = 'id'): PromiseInterface
     {
         return $this->orderBy($key)->one();
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function last(string|array|Closure $key = 'id')
+    public function last(string|array|Closure $key = 'id'): PromiseInterface
     {
         return $this->orderBy($key, 'desc')->one();
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function column(Func|string|Expression $column): mixed
+    public function column(Func|string|Expression $column): PromiseInterface
     {
-        $result = $this->fields($column)->one();
-
-        // only return something if something is found
-        if (is_array($result)) {
-            return reset($result);
-        }
-
-        return null;
+        return $this->fields($column)->one()->then(
+            static function (array $result): mixed {
+                return !empty($result)
+                    ? reset($result)
+                    : null;
+            }
+        );
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function count(string|array|Closure $field = '*'): int
+    public function count(string|array|Closure $field = '*'): PromiseInterface
     {
-        return (int)$this->column(new Func('count', $field));
+        return $this->column(new Func('count', $field))->then(
+            static function (mixed $result): ?int {
+                if ($result !== null) {
+                    return (int)$result;
+                }
+
+                return null;
+            }
+        );
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function sum(string|array|Closure $field = '*'): float
+    public function sum(string|array|Closure $field = '*'): PromiseInterface
     {
-        return (float)$this->column(new Func('sum', $field));
+        return $this->column(new Func('sum', $field))->then(
+            static function (mixed $result): ?float {
+                if ($result !== null) {
+                    return (float)$result;
+                }
+
+                return null;
+            }
+        );
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function max(string|array|Closure $field = '*'): float
+    public function max(string|array|Closure $field = '*'): PromiseInterface
     {
-        return (float)$this->column(new Func('max', $field));
+        return $this->column(new Func('max', $field))->then(
+            static function (mixed $result): ?float {
+                if ($result !== null) {
+                    return (float)$result;
+                }
+
+                return null;
+            }
+        );
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function min(string|array|Closure $field = '*'): float
+    public function min(string|array|Closure $field = '*'): PromiseInterface
     {
-        return (float)$this->column(new Func('min', $field));
+        return $this->column(new Func('min', $field))->then(
+            static function (mixed $result): ?float {
+                if ($result !== null) {
+                    return (float)$result;
+                }
+
+                return null;
+            }
+        );
     }
 
-    /**
-     * @throws Exception
-     * @throws BaseException
-     */
-    public function avg(string|array|Closure $field = '*'): float
+    public function avg(string|array|Closure $field = '*'): PromiseInterface
     {
-        return (float)$this->column(new Func('avg', $field));
+        return $this->column(new Func('avg', $field))->then(
+            static function (mixed $result): ?float {
+                if ($result !== null) {
+                    return (float)$result;
+                }
+
+                return null;
+            }
+        );
     }
 
-    /**
-     * @throws BaseException
-     */
-    public function exists(): bool
+    public function exists(): PromiseInterface
     {
-        $existsQuery = new Exists($this);
+        $existsQuery = new Exists($this->connection, $this->translator, $this);
         $existsQuery->setSelect($this);
 
-        $result = $existsQuery->executeResultFetcher();
+        return $existsQuery
+            ->run()
+            ->then(
+                function (array $results): bool {
+                    if (!empty($results) && ($first = reset($results)) !== false && isset($first['exists'])) {
+                        return (bool)$first['exists'];
+                    }
 
-        if (isset($result[0]['exists'])) {
-            return (bool)$result[0]['exists'];
-        }
-
-        return false;
+                    return false;
+                }
+            );
     }
 }

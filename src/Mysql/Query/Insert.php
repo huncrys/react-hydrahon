@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon\Query\Sql;
+namespace Crys\Hydrahon\Mysql\Query;
 
 class Insert extends Base
 {
@@ -12,6 +12,7 @@ class Insert extends Base
     public function ignore(bool $ignore = true): static
     {
         $this->ignore = $ignore;
+
         return $this;
     }
 

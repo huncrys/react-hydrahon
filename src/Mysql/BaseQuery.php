@@ -2,22 +2,31 @@
 
 declare(strict_types=1);
 
-namespace Crys\Hydrahon;
+namespace Crys\Hydrahon\Mysql;
 
 use BadMethodCallException;
-use Crys\Hydrahon\Query\Expression;
-use JetBrains\PhpStorm\Pure;
+use Crys\Hydrahon\Exception;
+use Crys\Hydrahon\Mysql\Expression;
+use Crys\Hydrahon\Mysql\Query\Delete;
+use Crys\Hydrahon\Mysql\Query\FetchableInterface;
+use Crys\Hydrahon\Mysql\Query\Insert;
+use Crys\Hydrahon\Mysql\Query\Replace;
+use Crys\Hydrahon\Mysql\Query\Update;
+use Crys\Hydrahon\TranslatorInterface;
+use React\MySQL\ConnectionInterface;
+use React\MySQL\QueryResult;
+use React\Promise\PromiseInterface;
 
 class BaseQuery
 {
     protected array $macros = [];
     protected array $flags = [];
 
-    /** @var callable|null */
-    protected $resultFetcher;
-
-    final public function __construct(BaseQuery $parent = null)
-    {
+    final public function __construct(
+        protected ConnectionInterface $connection,
+        protected TranslatorInterface $translator,
+        ?BaseQuery $parent = null
+    ) {
         if (!is_null($parent)) {
             $this->inheritFromParent($parent);
         }
@@ -25,14 +34,8 @@ class BaseQuery
 
     protected function inheritFromParent(BaseQuery $parent): void
     {
-        $this->macros        = $parent->macros;
-        $this->flags         = $parent->flags;
-        $this->resultFetcher = $parent->resultFetcher;
-    }
-
-    public function setResultFetcher(callable $resultFetcher): void
-    {
-        $this->resultFetcher = $resultFetcher;
+        $this->macros = $parent->macros;
+        $this->flags  = $parent->flags;
     }
 
     final public function setFlag(string $key, mixed $value): void
@@ -73,19 +76,19 @@ class BaseQuery
             throw new Exception('Invalid query callback given.');
         }
 
-        call_user_func_array($callback, array(&$this));
+        call_user_func_array($callback, [&$this]);
 
         return $this;
     }
 
-    #[Pure] final public function raw(string $expression): Expression
+    final public function raw(string $expression): Expression
     {
         return new Expression($expression);
     }
 
     final public function attributes(): array
     {
-        $excluded   = ['resultFetcher', 'macros'];
+        $excluded   = ['macros'];
         $attributes = get_object_vars($this);
 
         foreach ($excluded as $key) {
@@ -108,23 +111,30 @@ class BaseQuery
         return $attributes;
     }
 
-    /**
-     * @throws Exception
-     */
-    final protected function executeResultFetcher(): mixed
+    final protected function run(): PromiseInterface
     {
-        if (is_null($this->resultFetcher)) {
-            throw new Exception('Cannot execute result fetcher callbacks without inital assignment.');
-        }
+        return $this->connection->query(...$this->translator->translate($this))
+            ->then(
+                function (QueryResult $result): array|int|null {
+                    if ($this instanceof FetchableInterface) {
+                        return $result->resultRows;
+                    }
 
-        return call_user_func_array($this->resultFetcher, [&$this]);
+                    if ($this instanceof Insert) {
+                        return $result->insertId;
+                    }
+
+                    if ($this instanceof Update || $this instanceof Replace || $this instanceof Delete) {
+                        return $result->affectedRows;
+                    }
+
+                    return null;
+                }
+            );
     }
 
-    /**
-     * @throws Exception
-     */
-    public function execute(): mixed
+    public function execute(): PromiseInterface
     {
-        return $this->executeResultFetcher();
+        return $this->run();
     }
 }
